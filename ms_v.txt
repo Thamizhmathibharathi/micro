@@ -1,0 +1,240 @@
+#########################################################
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-server
+  namespace: default
+  labels:
+    app: web-server
+spec:
+  containers:
+    - name: nginx
+      image: nginx:1.27-alpine
+      ports:
+        - name: http
+          containerPort: 80
+          protocol: TCP
+
+
+
+
+
+
+
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        tier: frontend
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    tier: frontend
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: default
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      tier: backend
+  template:
+    metadata:
+      labels:
+        tier: backend
+    spec:
+      containers:
+        - name: httpd
+          image: httpd:2.4-alpine
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    tier: backend
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+
+######################################################################
+
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "Hello! My first Docker container is running."
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=8000)
+
+
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY app.py .
+
+EXPOSE 8000
+
+CMD ["python", "app.py"]
+
+
+
+
+
+services:
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+
+#######################################################################################
+#Volumes
+
+Command	Description
+docker volume ls	Lists all Docker volumes.
+docker volume create myvol	Creates a volume named myvol.
+docker volume inspect myvol	Displays details about the volume.
+docker volume rm myvol	Removes a volume if it is not in use.
+docker volume prune	Removes unused anonymous and named volumes.
+docker volume prune -a	Removes all unused volumes, including named volumes.
+docker run -d --name c1 -v myvol:/data nginx	Runs Nginx with myvol mounted at /data.
+docker run -d --name c1 --mount source=myvol,target=/data nginx	Mounts myvol at /data using explicit mount syntax.
+docker inspect c1	Displays container configuration, including volume mounts.
+docker inspect -f "{{json .Mounts}}" c1	Displays the container's mount details.
+docker run --rm -v myvol:/data alpine ls /data	Lists files in the volume from a temporary Alpine container.
+docker run --rm -v myvol:/data -v "$PWD":/backup alpine cp -r /data/. /backup/	Copies volume contents to a host directory on compatible shells.
+docker stop c1	Stops the container using the volume.
+docker rm c1	Removes the container but preserves a separately created named volume.
+docker run --rm -v myvol:/data alpine sh -c "echo Hello > /data/file.txt"	Writes a file into the volume.
+docker run --rm -v myvol:/data alpine cat /data/file.txt	Reads the file stored in the volume.
+
+
+
+
+######################################################################################################
+#network
+
+Command	One-line description
+docker network ls	Lists all Docker networks.
+docker network create mynet	Creates a user-defined bridge network.
+docker network inspect mynet	Displays network details and connected containers.
+docker network rm mynet	Removes a network when no containers are connected.
+docker network connect mynet c1	Connects an existing container to a network.
+docker network disconnect mynet c1	Disconnects a container from a network.
+docker network prune	Removes unused networks.
+docker inspect c1	Displays the container's configuration, including networking.
+docker port c1	Displays published host-to-container port mappings.
+docker exec c1 hostname -i	Displays the container's IP address or addresse
+
+
+Step 1: Create a network
+docker network create mynet
+
+
+Step 2: Start the web server
+docker run -d --name c1 --network mynet nginx:alpine
+
+
+Step 3: Start the client
+docker run -dit --name c2 --network mynet alpine:latest sh
+
+
+Step 4: Send an HTTP request from c2 to c1
+docker exec c2 wget -qO- http://c1
+
+
+Displays the HTML response returned by Nginx.
+Step 5: Check the network
+docker network inspect mynet
+
+
+Shows both containers connected to mynet.
+Step 6: Test interactively
+docker exec -it c2 sh
+
+
+Inside the client container, execute:
+wget -qO- http://c1
+
+
+Type exit to leave the shell.
+3. Other useful communication commands
+Command	One-line description
+docker logs c1	Displays the web server's logs.
+docker exec c2 ping c1	Tests connectivity if ping is installed and ICMP is permitted.
+docker exec c2 wget -S -O- http://c1	Sends an HTTP request and displays response headers and body.
+docker exec c2 nslookup c1	Tests Docker DNS resolution if nslookup is available.
+docker inspect -f "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" c1	Displays the IP address assi
+
+###############################################################################3
+
+
+all together
+docker network create my-network
+
+docker run -d --name server --network my-network nginx:alpine
+
+docker run -dit --name client --network my-network busybox:1.36
+
+docker ps
+
+docker exec client wget -qO- http://server
+
+docker logs server
+
+docker rm -f client server
+
+docker network rm my-network

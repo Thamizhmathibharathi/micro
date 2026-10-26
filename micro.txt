@@ -1,104 +1,88 @@
-#node.js
-//
-// Filename: server.js
-// Simple Node.js HTTP Server
-//
-
-const http = require('http');
-
-// Port number
-const PORT = process.env.PORT || 8888;
-
-// Create HTTP server
-http.createServer((request, response) => {
-    response.end('Server is running.!! You asked for: ' + request.url);
-}).listen(PORT, () => {
-    console.log("Server listening on: http://localhost:%s", PORT);
-});
-
-
-# Use the official Node.js image as the base image
-FROM node
-
-# Set the working directory
-WORKDIR /usr/src
-
-# Copy the server code into the image
-COPY server.js .
-
-# Document the port used by the server
-EXPOSE 8888
-
-# Start the server when the container runs
-CMD ["node", "./server.js"]\
-
-
-mkdir node-server
-cd node-server
-notepad server.js
-notepad Dockerfile
-docker build -t node-server .
-docker run -d -p 8888:8888 --name mynode node-server
-docker ps
-docker logs mynode
-docker stop mynode
-docker rm mynode
-
-
 app.py
-mkdir python-app
-cd python-app
-notepad app.py
-
 from flask import Flask
-
 app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Hello Student"
+app.run(host="0.0.0.0", port=5000)
+requirements.txt
+flask
+Dockerfile
+FROM python:3.11
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt
+EXPOSE 5000
+CMD ["python","app.py"]
 
+COMMANDS:
+docker build -t flask-student-app:v1 .
+docker images
+docker run -d --name flask-v1 -p 5000:5000 flask-student-app:v1
+docker build -t flask-app .
+docker login
+docker tag flask-app flask/flask-app:v1
+docker push flask/flask-app:v1
+docker images
+
+COMPOSE:
+app.py
+from flask import Flask
+app = Flask(__name__)
 @app.route("/")
 def home():
-    return "Hello! Python app is running in Docker."
-
+    return "Hello! Docker Compose is working."
 @app.route("/hello")
 def hello():
-    return "Hello from Flask!"
-
+    return "Hello from Flask container!"
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
 
-
+Dockerfile
 FROM python:3.12-slim
-
 WORKDIR /app
-
 COPY app.py .
-
 RUN pip install flask
-
 EXPOSE 5000
-
 CMD ["python", "app.py"]
 
-commands
-Build the Docker image
-docker build -t python-app .
+compose.yaml
+services:
+  web:
+    build: .
+    container_name: myweb
+    ports:
+      - "5000:5000"
+
+COMMANDS:
+docker compose up --build -d
+docker compose ps
+docker compose logs
+docker compose down
 
 
-Step 4: Run the container
-docker run -d -p 5000:5000 --name mypython python-app
-
+DOCKER BASIC CODE:
+1)NETWORKS:
+docker network create my-network
+docker run -d --name nginx-server --network my-network nginx
+docker run -it --name busybox-client --network my-network busybox sh
+. From inside the container, run:
+wget -qO- http://nginx-server
+exit
 docker ps
-docker logs mypython
+docker network inspect my-network
+docker rm -f busybox-client nginx-server
+docker network rm my-network
 
 
-Step 7: Stop and remove the container
-docker stop mypython
-docker rm mypython
----------------------------------------------------------
+
+====================================================================================================
+
+
 kubernetees
 II. Deploy and expose Kubernetes Web Service
 File: /home/ics1761/project/k8s-challenge/web-stack.yaml
 web-stack.yaml
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -183,48 +167,7 @@ kubectl get deployments
 kubectl get pods
 kubectl get services
 kubectl get endpointslice
-
--------------------------------------------------------
-DOCKRE Command
-Run a container
-docker run -d --name web -p 8080:80 nginx
-docker start web
-docker stop web
-docker restart web
-docker pause web
-docker unpause web
-docker logs web
-docker inspect web
-docker port web
-docker stats
-docker top web
-docker exec -it web sh
-
-NETWORKS
-docker network ls
-docker network create mynetwork
-docker network inspect mynetwork
-docker network connect mynetwork web
-docker network disconnect mynetwork web
-docker run -d --name web1 --network mynetwork nginx
-docker run -d --name testbox --network mynetwork alpine sleep 3600
-docker exec testbox ping -c 3 web1
-docker rm -f web1 testbox
-docker network rm mynetwork
-
-VOlume:
-docker volume create myvolume
-docker run -dit --name c1 -v myvolume:/data alpine sh
-docker exec c1 sh -c "echo Hello Docker > /data/test.txt"
-docker exec c1 cat /data/test.txt
-docker rm -f c1
-Create another container using the same volume
-docker run --rm -v myvolume:/data alpine cat /data/test.txt
-docker volume create flaskdata
-
-
-Run the application:
-docker run -d --name flaskapp -p 5000:5000 -v flaskdata:/app/uploads flask-app:v1
+====================================================================================================
 
 <?xml version="1.0" encoding="UTF-8"?>
 
@@ -235,3 +178,45 @@ docker run -d --name flaskapp -p 5000:5000 -v flaskdata:/app/uploads flask-app:v
         <department>CSE</department>
         <mark>85</mark>
     </student>
+PATH
+//owner[address/country='United States']/address/postalCode/text()
+//flat[@comfort='C' and @property!='p2']/rate/text()
+(//property)[1]/features/feature[3]/text()
+//property[not(@owner) and count(features/feature) >= 2]/name/text()
+//owner[not(@idOwner = //property/@owner)]/name/text()
+//flat[rate < avg(//flat/rate)]/name/text()
+//owner[@idOwner = //property[@idProperty = //flat[features/feature='bath']/@property]/@owner]/name/text()
+sum(//flat[@property = //property[@owner='o1']/@idProperty and (@comfort='C' or @comfort='D')]/rate)
+
+QUERY
+for $o in doc("data.xml")/real-estate/owners/owner
+where $o/address/country = "India"
+order by $o/name
+return $o
+
+for $p in doc("data.xml")/real-estate/properties/property
+let $o := doc("data.xml")/real-estate/owners/owner[@idOwner = $p/@owner]
+return
+<property idProperty="{$p/@idProperty}">
+    <owner>{data($o/name)}</owner>
+    <address>{$p/address/*}</address>
+</property>
+
+for $a in doc("data.xml")/real-estate/agencies/agency
+for $e in $a/employee
+return
+<employee>
+    <name>{concat($e/firstName," ",$e/lastName)}</name>
+    {" works at "}
+    <agency id="{data($a/@idAgency)}">{data($a/name)}</agency>
+</employee>
+
+for $f in doc("data.xml")/real-estate/flats//flat
+let $p := doc("data.xml")/real-estate/properties/property[@idProperty=$f/@property]
+order by $p/name descending, $f/name ascending
+return
+<flat>
+    <property>{data($f/@property)}</property>
+    <name>{data($f/name)}</name>
+    <comfort>{data($f/@comfort)}</comfort>
+</flat>

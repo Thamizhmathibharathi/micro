@@ -238,3 +238,25 @@ docker logs server
 docker rm -f client server
 
 docker network rm my-network
+
+Command	Description
+docker exec client ping server	Pings the server container from the client.
+docker exec -it client ping -c 4 server	Sends 4 ping packets to the server.
+docker exec -it client ping 8.8.8.8	Tests connectivity to a public IP address.
+docker exec -it client ping google.com	Tests external connectivity and DNS resolution.
+docker exec -it server ping client	Pings the client from the server container.
+docker exec -it client sh	Opens a shell inside the client container.
+docker network inspect my-network	Checks the containers connected to the network.
+
+
+
+
+Command	Description
+docker network create my-network	Creates a custom bridge network named my-network.
+docker run -d --name server --network my-network nginx:alpine	Starts an NGINX server container in the network.
+docker run -dit --name client --network my-network busybox:1.36	Starts a BusyBox client container in interactive background mode.
+docker ps	Lists running containers.
+docker exec client wget -qO- http://server	Sends an HTTP request from the client to the server using its container name.
+docker logs server	Displays the NGINX server logs.
+docker rm -f client server	Forcefully stops and removes both containers.
+docker network rm my-network	Removes the custom network after its containers are removed.
